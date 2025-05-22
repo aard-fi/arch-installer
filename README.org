@@ -1,0 +1,39 @@
+*                                                                   :TOC_4:
+  - [[#introduction][Introduction]]
+
+** Introduction
+
+If you've ever wondered if ChatGPT or any other tool using LLM can install [[https://archlinux.org/][Arch Linux]] you've come to the right place.
+
+This library watches a serial port for the signs of the Arch Linux installer bootloader, and once it detects it, starts it with serial console support.
+
+For loading the LLM bindings you'll also need my [[https://github.com/aard-fi/gptel-tool-library][gptel-tool library]]:
+
+#+BEGIN_SRC elisp
+  (add-to-list 'load-path "/path/to/gptel-tool-library")
+  (add-to-list 'load-path "/path/to/this/repo")
+  (require 'gptel-tool-library)
+  (dolist (module '("buffer" "arch-installer"))
+    (gptel-tool-library-load-module module)))
+#+END_SRC
+
+If you're using a VM instead of a real system connected via serial port you'll need to add a virtual port connected to a socket, and - as the code expects a pty - use socat to make it one:
+
+#+BEGIN_SRC shell
+socat -d -d pty,raw,echo=0,link=/tmp/kvm-serial UNIX-CONNECT:/tmp/archvm.sock
+#+END_SRC
+
+Now you can start the serial listen process (the virtual port needs to be available!):
+
+#+BEGIN_SRC elisp
+(arch-installer-open-serial "/tmp/kvm-serial")
+#+END_SRC
+
+If the port is =/dev/ttyS0= the port argument can be omitted. Now you can have whatever system is connected start booting from CD/DVD - it should then automatically boot into the installer console on the serial port. You can observe this in the =*arch-installer*= buffer.
+
+Now you can start a [[https://github.com/karthink/gptel][gptel]] session, and request start of the installation. The interactive function =arch-installer-insert-default-prompt= will insert a sample prompt into the current buffer. If you're using ChatGPT and are on tier 1 you should ask it to stop and wait for input after it started installing packages - otherwise you'll run into rate limiting.
+
+#+CAPTION: ChatGPT in Emacs starts an Arch Linux installation
+[[./pictures/setup_start.png]]
+
+The very first attempt at an installation (running into the rate limits) from before I had the ANSI colours converted [[https://youtu.be/bELvmEJzC4E][is available on YouTube]].
